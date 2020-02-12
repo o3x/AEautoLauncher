@@ -11,6 +11,7 @@ using System.Deployment.Application;
 using System.Web;
 using System.IO;
 
+
 namespace AEautoLauncher
 {
     public partial class AEautoLauncher : Form
@@ -122,7 +123,7 @@ namespace AEautoLauncher
                                 break;
 
                             default:
-                                MessageBox.Show("AEautoLauncher Version 0.0.3.0\rバージョン不明ですがCC(2018)で起動してみます。\r確認コード:" + bytes[0x15].ToString("x2") + ":" + bytes[0x21].ToString("x2"));
+                                MessageBox.Show("AEautoLauncher Version 0.0.3.1\rバージョン不明ですがCC(2018)で起動してみます。\r確認コード:" + bytes[0x15].ToString("x2") + ":" + bytes[0x21].ToString("x2"));
                                 AE_exe("cc18", cmds[1]);
                                 break;
                         }
@@ -144,7 +145,7 @@ namespace AEautoLauncher
             }
             else
             {
-                MessageBox.Show(text: "AEautoLauncher Version 0.0.3.0\r暫定仕様です。\rAE6.5～CC 2020\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。");
+                MessageBox.Show(text: "AEautoLauncher Version 0.0.3.1\r暫定仕様です。\rAE6.5～CC 2020\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。");
             }
         }
 
@@ -254,8 +255,13 @@ namespace AEautoLauncher
                     return;
             }
 
-            // コマンドライン引数を設定する
-            hPsInfo.Arguments = "\"" + @aep + "\"";
+            // 実行ファイルがあるか？
+            if (File.Exists(hPsInfo.FileName))
+            {
+
+
+                // コマンドライン引数を設定する
+                hPsInfo.Arguments = "\"" + @aep + "\"";
 
             // 新しいウィンドウを作成するかどうかを設定する (初期値 false)
             hPsInfo.CreateNoWindow = true;
@@ -283,6 +289,13 @@ namespace AEautoLauncher
 
             // ProcessStartInfo を指定して起動する
             System.Diagnostics.Process.Start(hPsInfo);
+            }
+            else
+            {
+                MessageBox.Show(text: "AEautoLauncher Version 0.0.3.1\raepは" + ae_program + "で作成されています。実行ファイルの場所が違うので起動できません。\r"
+                    + hPsInfo.FileName);
+
+            }
         }
 
         private void AEautoLauncher_Load(object sender, EventArgs e)
