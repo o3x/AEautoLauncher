@@ -32,7 +32,12 @@ namespace AEautoLauncher
             //コマンドラインを配列で取得する
             string[] cmds = System.Environment.GetCommandLineArgs();
 
-            if (cmds.Length > 1)
+            if (cmds.Length > 2)
+            {
+                MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
+                    + "\r複数のファイル選択には対応していません");
+            }
+            else if (cmds.Length > 1)
             {
                 FileStream rfs; // = null;
                 rfs = new FileStream(cmds[1], FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -61,7 +66,7 @@ namespace AEautoLauncher
 
                     default:
 
-                        switch (bytes[0x15] % 0xC0) // Macは0?000000
+                        switch (bytes[0x25] % 0x40) // macは0?000000
                         {
 
                             case 0x12:
@@ -240,7 +245,15 @@ namespace AEautoLauncher
                                                                                         //			hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Maximized;  //最大化
 
                 // ProcessStartInfo を指定して起動する
-                System.Diagnostics.Process.Start(hPsInfo);
+                if ((Control.ModifierKeys & Keys.Control) != Keys.Control)
+                {
+                    System.Diagnostics.Process.Start(hPsInfo);
+
+                }
+                else
+                {
+                    MessageBox.Show("AfterEffects\r" + hPsInfo.FileName + "\r\rAEPファイル\r" + @aep, "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                }
             }
             else
             {
