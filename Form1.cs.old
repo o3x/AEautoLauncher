@@ -59,85 +59,85 @@ namespace AEautoLauncher
                         strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPass;
                         break;
 
-                    default:
+                    case 0x12:
 
-                        switch (bytes[0x15] % 0xC0) // Macは0?000000
+                        switch (bytes[0x21])
                         {
-
-                            case 0x12:
-
-                                switch (bytes[0x21])
-                                {
-                                    case 0x4C:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPass;
-                                        break;
-
-                                    case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
-                                        break;
-                                }
+                            case 0x4C:
+                                strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPass;
                                 break;
 
-                            case 0x18:
+                            case 0x4E:
+                                strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
+                                break;
+                        }
+                        break;
 
-                                switch (bytes[0x21])
-                                {
-                                    case 0x4D:
-                                    case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
-                                        break;
+                    case 0x18:
 
-                                    case 0x51:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPass;
-                                        break;
-                                }
+                        switch (bytes[0x21])
+                        {
+                            case 0x4D:
+                            case 0x4E:
+                                strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
                                 break;
 
-                            case 0x20:
-                            case 0x21:
-                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
+                            case 0x51:
+                                strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPass;
                                 break;
+                        }
+                        break;
 
-                            case 0x28:
-                            case 0x29:
-                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
-                                break;
+                    case 0x20:
+                    case 0x21:
+                        strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
+                        break;
 
-                            case 0x2A:
-                            case 0x2B:
-                            case 0x2C: //13.8.1.38
+                    case 0x28:
+                    case 0x29:
+                        strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
+                        break;
+
+                    case 0x2A:
+                    case 0x2B:
+                    case 0x2C: //13.8.1.38
+                        strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPass;
+                        break;
+
+                    case 0x31: //V.14
+                        strAEfullpath = strProgramFilesX64Adobe + "CC 2017" + strAfterEffectsLastPass;
+                        break;
+
+                    case 0x38: //V.15
+                        strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPass;
+                        break;
+
+                    case 0x00: //cc2019
+                        strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPass;
+                        break;
+
+                    case 0x08: //cc2020
+                        strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPass;
+                        break;
+
+                    default:
+                        switch (bytes[0x21])
+                        {
+                            case 0x57:
                                 strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPass;
-                                break;
-
-                            case 0x31: //V.14
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2017" + strAfterEffectsLastPass;
-                                break;
-
-                            case 0x38: //V.15
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPass;
-                                break;
-
-                            case 0x00: //cc2019
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPass;
-                                break;
-
-                            case 0x08: //cc2020
-                                strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPass;
                                 break;
 
                             default:
                                 strAEfullpath = "UnKnown";
                                 break;
-
                         }
                         break;
                 }
-                if (strAEfullpath == "UnKnown")
+                if(strAEfullpath == "UnKnown")
                 {
-                    strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPass;
+                    strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPass;
                     AE_UnknownVersion(strAEfullpath, cmds[1], bytes);
-                }
-                else
+                } else
                 {
                     AE_exe(strAEfullpath, cmds[1]);
                 }
@@ -246,9 +246,14 @@ namespace AEautoLauncher
             {
                 MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
                     + "\raepは実行ファイルの場所が違うので起動できません。\r"
-                    + hPsInfo.FileName + "\r" + @aep);
+                    + hPsInfo.FileName + "\r" +@aep );
 
             }
+        }
+
+        private void AEautoLauncher_Load(object sender, EventArgs e)
+        {
+            Close();
         }
 
         public void AE_UnknownVersion(string strAEfullpath, string aep, byte[] bytes)
@@ -261,11 +266,6 @@ namespace AEautoLauncher
                 AE_exe(strAEfullpath, aep);
             }
         }
-
-        private void AEautoLauncher_Load(object sender, EventArgs e)
-        {
-            Close();
-        }
-
     }
 }
+

@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("AEautoLauncher")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("OHYAMA, Yoshihisa")]
+[assembly: AssemblyCompany("o3x")]
 [assembly: AssemblyProduct("AEautoLauncher")]
-[assembly: AssemblyCopyright("Copyright © OHYAMA, Yoshihisa 2020")]
+[assembly: AssemblyCopyright("Copyright © o3x 2011-2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // すべての値を指定するか、次を使用してビルド番号とリビジョン番号を既定に設定できます
 // 既定値にすることができます:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.0.3.1")]
-[assembly: AssemblyFileVersion("0.0.3.1")]
+[assembly: AssemblyVersion("0.0.4.1")]
+[assembly: AssemblyFileVersion("0.0.4.1")]
