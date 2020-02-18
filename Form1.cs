@@ -26,8 +26,9 @@ namespace AEautoLauncher
         {
             string strProgramFilesX86Adobe = "C:\\Program Files (x86)\\Adobe\\";
             string strProgramFilesX64Adobe = "C:\\Program Files\\Adobe\\Adobe After Effects ";
-            string strAfterEffectsLastPass = "\\Support Files\\AfterFX.exe";
+            string strAfterEffectsLastPath = "\\Support Files\\AfterFX.exe";
             string strAEfullpath = "";
+            string strAEversion = "";
 
             //コマンドラインを配列で取得する
             string[] cmds = System.Environment.GetCommandLineArgs();
@@ -37,7 +38,7 @@ namespace AEautoLauncher
                 MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
                     + "\r複数のファイル選択には対応していません");
             }
-            else if (cmds.Length > 1)
+            else if (cmds.Length == 2)
             {
                 FileStream rfs; // = null;
                 rfs = new FileStream(cmds[1], FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -49,85 +50,90 @@ namespace AEautoLauncher
                 switch (bytes[0x15])
                 {
                     case 0x44:
-                        strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPass;
+                        strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPath;
                         break;
 
                     case 0x49:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPass;
+                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPath;
                         break;
 
                     case 0x4A:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPass;
+                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPath;
                         break;
 
                     case 0x4C:
-                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPass;
+                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
                         break;
 
                     default:
 
-                        switch (bytes[0x25] % 0x40) // macは0?000000
+                        int aeversion =  (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
+                        strAEversion = aeversion
+                            + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)       ))
+                            + "." + (((bytes[0x26] >> 3) & 0x0F) );
+                        if(( bytes[0x25] & 0x40) == 0)
+                        {
+                            strAEversion += "(Win)";
+                        }
+                        else
+                        {
+                            strAEversion += "(Mac)";
+                        }
+                        switch (aeversion ) // macは0?000000
                         {
 
-                            case 0x12:
+                            case 10:
 
                                 switch (bytes[0x21])
                                 {
                                     case 0x4C:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPass;
+                                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
                                         break;
 
+                                    case 0x4D:
                                     case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
+                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
                                         break;
                                 }
                                 break;
 
-                            case 0x18:
+                            case 11:
 
                                 switch (bytes[0x21])
                                 {
                                     case 0x4D:
                                     case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPass;
+                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
                                         break;
 
                                     case 0x51:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPass;
+                                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPath;
                                         break;
                                 }
                                 break;
 
-                            case 0x20:
-                            case 0x21:
-                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
+                            case 12:
+                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPath;
                                 break;
 
-                            case 0x28:
-                            case 0x29:
-                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPass;
+                            case 13: //13.8.1.38
+                                strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPath;
                                 break;
 
-                            case 0x2A:
-                            case 0x2B:
-                            case 0x2C: //13.8.1.38
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPass;
+                            case 14: //V.14
+                                strAEfullpath = strProgramFilesX64Adobe + "CC 2017" + strAfterEffectsLastPath;
                                 break;
 
-                            case 0x31: //V.14
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2017" + strAfterEffectsLastPass;
+                            case 15: //V.15
+                                strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPath;
                                 break;
 
-                            case 0x38: //V.15
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPass;
+                            case 16: //cc2019
+                                strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPath;
                                 break;
 
-                            case 0x00: //cc2019
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPass;
-                                break;
-
-                            case 0x08: //cc2020
-                                strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPass;
+                            case 17: //cc2020
+                                strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPath;
                                 break;
 
                             default:
@@ -139,31 +145,19 @@ namespace AEautoLauncher
                 }
                 if (strAEfullpath == "UnKnown")
                 {
-                    strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPass;
-                    AE_UnknownVersion(strAEfullpath, cmds[1], bytes);
+                    strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPath;
+                    AE_UnknownVersion(strAEfullpath, cmds[1], strAEversion);
                 }
                 else
                 {
-                    AE_exe(strAEfullpath, cmds[1]);
+                    AE_exe(strAEfullpath, cmds[1], strAEversion);
                 }
-
-                /*				string filename = System.IO.Path.GetFileName(cmds[1]);
-                                if (filename.IndexOf("comp") > 0)
-                                {
-                                    AE_exe("cs3", cmds[1]);
-                                }
-                                else
-                                {
-                                    //AE CS4実行
-                                    AE_exe("cs4", cmds[1]);
-                                }
-                 */
 
             }
             else
             {
-                MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-                    + "\r暫定仕様です。\rAE6.5～CC 2020\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。");
+                MessageBox.Show("AE6.5～CC 2020\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
+                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() );
             }
         }
 
@@ -203,7 +197,7 @@ namespace AEautoLauncher
             }
         }
 
-        public void AE_exe(string strAEfullpath, string aep)
+        public void AE_exe(string strAEfullpath, string aep, string strAEversion)
         {
             // ProcessStartInfo の新しいインスタンスを生成する
             System.Diagnostics.ProcessStartInfo hPsInfo = (
@@ -252,26 +246,26 @@ namespace AEautoLauncher
                 }
                 else
                 {
-                    MessageBox.Show("AfterEffects\r" + hPsInfo.FileName + "\r\rAEPファイル\r" + @aep, "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                    MessageBox.Show("AE version : " + strAEversion + "\r\r" + @aep,
+                        "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
                 }
             }
             else
             {
-                MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-                    + "\raepは実行ファイルの場所が違うので起動できません。\r"
-                    + hPsInfo.FileName + "\r" + @aep);
+                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r"+ hPsInfo.FileName + "\r" + @aep,
+                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
             }
         }
 
-        public void AE_UnknownVersion(string strAEfullpath, string aep, byte[] bytes)
+        public void AE_UnknownVersion(string strAEfullpath, string aep, string strAEversion)
         {
             DialogResult result = MessageBox.Show("AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-                + "\rバージョン不明ですがCC(2018)で起動してみます。\r確認コード:" + bytes[0x15].ToString("x2") + ":" + bytes[0x21].ToString("x2"),
+                + "\rバージョン不明ですがCC(2020)で起動ますか？\rAE version :" + strAEversion,
                 "AEautoLauncher", MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
             if (result == DialogResult.OK)
             {
-                AE_exe(strAEfullpath, aep);
+                AE_exe(strAEfullpath, aep, strAEversion);
             }
         }
 
