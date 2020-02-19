@@ -67,11 +67,11 @@ namespace AEautoLauncher
 
                     default:
 
-                        int aeversion =  (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
+                        int aeversion = (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
                         strAEversion = aeversion
-                            + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)       ))
-                            + "." + (((bytes[0x26] >> 3) & 0x0F) );
-                        if(( bytes[0x25] & 0x40) == 0)
+                            + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))
+                            + "." + (((bytes[0x26] >> 3) & 0x0F));
+                        if ((bytes[0x25] & 0x40) == 0)
                         {
                             strAEversion += "(Win)";
                         }
@@ -79,7 +79,7 @@ namespace AEautoLauncher
                         {
                             strAEversion += "(Mac)";
                         }
-                        switch (aeversion ) // macは0?000000
+                        switch (aeversion) // macは0?000000
                         {
 
                             case 10:
@@ -120,24 +120,17 @@ namespace AEautoLauncher
                                 strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPath;
                                 break;
 
-                            case 14: //V.14
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2017" + strAfterEffectsLastPath;
-                                break;
-
-                            case 15: //V.15
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2018" + strAfterEffectsLastPath;
-                                break;
-
-                            case 16: //cc2019
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2019" + strAfterEffectsLastPath;
-                                break;
-
-                            case 17: //cc2020
-                                strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPath;
-                                break;
 
                             default:
                                 strAEfullpath = "UnKnown";
+                                if ((aeversion > 13) & (aeversion < 17)) // ver.14(CC 2017)-ver.16(CC 2019)まで
+                                {
+                                    strAEfullpath = strProgramFilesX64Adobe + "CC " + (2003 + aeversion) + strAfterEffectsLastPath;
+                                }
+                                else if (aeversion > 16) // ver.17(CC 2020)から
+                                {
+                                    strAEfullpath = strProgramFilesX64Adobe + (2003 + aeversion) + strAfterEffectsLastPath;
+                                }
                                 break;
 
                         }
@@ -156,8 +149,8 @@ namespace AEautoLauncher
             }
             else
             {
-                MessageBox.Show("AE6.5～CC 2020\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
-                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() );
+                MessageBox.Show("AE6.5以降に対応\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
+                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
             }
         }
 
@@ -252,7 +245,7 @@ namespace AEautoLauncher
             }
             else
             {
-                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r"+ hPsInfo.FileName + "\r" + @aep,
+                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r" + hPsInfo.FileName + "\r" + @aep,
                     "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
             }
