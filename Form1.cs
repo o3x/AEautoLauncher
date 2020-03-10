@@ -51,18 +51,22 @@ namespace AEautoLauncher
                 {
                     case 0x44:
                         strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPath;
+                        strAEversion += "6.5";
                         break;
 
                     case 0x49:
                         strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPath;
+                        strAEversion += "CS3";
                         break;
 
                     case 0x4A:
                         strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPath;
+                        strAEversion += "CS4";
                         break;
 
                     case 0x4C:
                         strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
+                        strAEversion += "CS5";
                         break;
 
                     default:
@@ -199,8 +203,15 @@ namespace AEautoLauncher
             //			MessageBox.Show(ae_program);
             hPsInfo.FileName = strAEfullpath;
 
+            // コントロールキーが押されている場合はヴァージョンチェック機能
+            if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
+            {
+                MessageBox.Show("AE version : " + strAEversion + "\r\r" + @aep,
+                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            }
+
             // 実行ファイルがあるか？
-            if (File.Exists(hPsInfo.FileName))
+            else if (File.Exists(hPsInfo.FileName))
             {
 
 
@@ -232,16 +243,7 @@ namespace AEautoLauncher
                                                                                         //			hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Maximized;  //最大化
 
                 // ProcessStartInfo を指定して起動する
-                if ((Control.ModifierKeys & Keys.Control) != Keys.Control)
-                {
-                    System.Diagnostics.Process.Start(hPsInfo);
-
-                }
-                else
-                {
-                    MessageBox.Show("AE version : " + strAEversion + "\r\r" + @aep,
-                        "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                }
+                System.Diagnostics.Process.Start(hPsInfo);
             }
             else
             {
