@@ -27,8 +27,9 @@ namespace AEautoLauncher
             string strProgramFilesX86Adobe = "C:\\Program Files (x86)\\Adobe\\";
             string strProgramFilesX64Adobe = "C:\\Program Files\\Adobe\\Adobe After Effects ";
             string strAfterEffectsLastPath = "\\Support Files\\AfterFX.exe";
-            string strAEfullpath = "";
-            string strAEversion = "";
+            string strAEfullpath;
+            string strAEversion;
+            int aeversion;
 
             //コマンドラインを配列で取得する
             string[] cmds = System.Environment.GetCommandLineArgs();
@@ -46,100 +47,112 @@ namespace AEautoLauncher
                 byte[] bytes = BinaryRead(rfs, 0x00000000, 0x00000030);
 
                 //				MessageBox.Show(bytes[21].ToString());
-
-                switch (bytes[0x15])
+                if(bytes[0x18]!=0x68)
                 {
-                    case 0x44:
-                        strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPath;
-                        strAEversion += "6.5";
-                        break;
+                    // CS5以前
+                    aeversion = (((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07));
+                    strAEversion = aeversion
+                        + "." + (((bytes[0x19] << 1) & 0x0E) + ((bytes[0x1A] >> 7)))
+                        + "." + (((bytes[0x1A] >> 3) & 0x0F));
+                }
+                else
+                {
+                    // CS6以降
+                    aeversion = (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
+                    strAEversion = aeversion
+                        + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))
+                        + "." + (((bytes[0x26] >> 3) & 0x0F));
+                    if ((bytes[0x25] & 0x40) == 0)
+                    {
+                        strAEversion += "(Win)";
+                    }
+                    else
+                    {
+                        strAEversion += "(Mac)";
+                    }
+                }
 
-                    case 0x49:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPath;
-                        strAEversion += "CS3";
-                        break;
-
-                    case 0x4A:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPath;
-                        strAEversion += "CS4";
-                        break;
-
-                    case 0x4C:
-                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
-                        strAEversion += "CS5";
-                        break;
-
-                    default:
-
-                        int aeversion = (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
-                        strAEversion = aeversion
-                            + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))
-                            + "." + (((bytes[0x26] >> 3) & 0x0F));
-                        if ((bytes[0x25] & 0x40) == 0)
+                switch (aeversion) // macは0?000000
+                {
+                    case 5:
+                        if (strAEversion.Substring(1, 3) != "5.5")
                         {
-                            strAEversion += "(Win)";
+                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 5.0" + strAfterEffectsLastPath;
                         }
                         else
                         {
-                            strAEversion += "(Mac)";
-                        }
-                        switch (aeversion) // macは0?000000
-                        {
-
-                            case 10:
-
-                                switch (bytes[0x21])
-                                {
-                                    case 0x4C:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
-                                        break;
-
-                                    case 0x4D:
-                                    case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
-                                        break;
-                                }
-                                break;
-
-                            case 11:
-
-                                switch (bytes[0x21])
-                                {
-                                    case 0x4D:
-                                    case 0x4E:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
-                                        break;
-
-                                    case 0x51:
-                                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPath;
-                                        break;
-                                }
-                                break;
-
-                            case 12:
-                                strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPath;
-                                break;
-
-                            case 13: //13.8.1.38
-                                strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPath;
-                                break;
-
-
-                            default:
-                                strAEfullpath = "UnKnown";
-                                if ((aeversion > 13) & (aeversion < 17)) // ver.14(CC 2017)-ver.16(CC 2019)まで
-                                {
-                                    strAEfullpath = strProgramFilesX64Adobe + "CC " + (2003 + aeversion) + strAfterEffectsLastPath;
-                                }
-                                else if (aeversion > 16) // ver.17(CC 2020)から
-                                {
-                                    strAEfullpath = strProgramFilesX64Adobe + (2003 + aeversion) + strAfterEffectsLastPath;
-                                }
-                                break;
-
+                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 5.5" + strAfterEffectsLastPath;
                         }
                         break;
+
+                    case 6:
+                        if (strAEversion.Substring(1, 3) != "6.5")
+                        {
+                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.0" + strAfterEffectsLastPath;
+                        }
+                        else
+                        {
+                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPath;
+                        }
+                        break;
+
+                    case 7:
+                        strAEfullpath = strProgramFilesX86Adobe + "After Effects 7.0" + strAfterEffectsLastPath;
+                        break;
+
+                    case 8:
+                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPath;
+                        strAEversion += " [CS3]";
+                        break;
+
+                    case 9:
+                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPath;
+                        strAEversion += " [CS4]";
+                        break;
+
+                    case 10:
+                        if (strAEversion.Substring(1, 4) != "10.5")
+                        {
+                            strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
+                        }
+                        else
+                        {
+                            strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
+                        }
+                        strAEversion += " [CS5]";
+                        break;
+
+                    case 11:
+
+                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPath;
+                        strAEversion += " [CS6]";
+                        break;
+
+                    case 12:
+                        strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPath;
+                        strAEversion += " [CC]";
+                        break;
+
+                    case 13: //13.8.1.38
+                        strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPath;
+                        strAEversion += " [CC 2015]";
+                        break;
+
+
+                    default:
+                        strAEfullpath = "UnKnown";
+                        if ((aeversion > 13) & (aeversion < 17)) // ver.14(CC 2017)-ver.16(CC 2019)まで
+                        {
+                            strAEfullpath = strProgramFilesX64Adobe + "CC " + (2003 + aeversion) + strAfterEffectsLastPath;
+                        }
+                        else if (aeversion > 16) // ver.17(CC 2020)から
+                        {
+                            strAEfullpath = strProgramFilesX64Adobe + (2003 + aeversion) + strAfterEffectsLastPath;
+                        }
+                        break;
+
                 }
+
                 if (strAEfullpath == "UnKnown")
                 {
                     strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPath;
@@ -153,7 +166,7 @@ namespace AEautoLauncher
             }
             else
             {
-                MessageBox.Show("AE6.5以降に対応\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
+                MessageBox.Show("AE5.0以降に対応\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
                     "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
             }
         }
