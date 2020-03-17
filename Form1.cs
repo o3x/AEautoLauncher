@@ -51,17 +51,19 @@ namespace AEautoLauncher
                 {
                     // CS5以前
                     aeversion = (((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07));
-                    strAEversion = aeversion
-                        + "." + (((bytes[0x19] << 1) & 0x0E) + ((bytes[0x1A] >> 7)))
-                        + "." + (((bytes[0x1A] >> 3) & 0x0F));
+                    strAEversion = aeversion                                            // version
+                        + "." + (((bytes[0x19] << 1) & 0x0E) + ((bytes[0x1A] >> 7)))    // minor
+                        + "." + (((bytes[0x1A] >> 3) & 0x0F));                           // build
+// 間違ってるかもしれない                       + "." + bytes[0x17];   // revision
                 }
                 else
                 {
                     // CS6以降
                     aeversion = (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
-                    strAEversion = aeversion
-                        + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))
-                        + "." + (((bytes[0x26] >> 3) & 0x0F));
+                    strAEversion = aeversion                                            // version
+                        + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))    // minor
+                        + "." + (((bytes[0x26] >> 3) & 0x0F))                           // build
+                        +"." + bytes[0x17];                                             // revision
                     if ((bytes[0x25] & 0x40) == 0)
                     {
                         strAEversion += "(Win)";
