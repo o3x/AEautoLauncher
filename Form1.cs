@@ -262,7 +262,7 @@ namespace AEautoLauncher
             }
             else
             {
-                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r" + hPsInfo.FileName + "\r" + @aep,
+                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r" + hPsInfo.FileName + "\r" + @aep +"\rAE version: " + strAEversion,
                     "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
             }
