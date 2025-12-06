@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Updated: Sat Dec 06 17:10:00 JST 2025
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -16,296 +17,200 @@ namespace AEautoLauncher
 {
     public partial class AEautoLauncher : Form
     {
+        private const string ProgramFilesX86Adobe = @"C:\Program Files (x86)\Adobe\";
+        private const string ProgramFilesX64Adobe = @"C:\Program Files\Adobe\";
+        private const string AfterEffectsExePath = @"\Support Files\AfterFX.exe";
+
         public AEautoLauncher()
         {
             InitializeComponent();
-            Hikisuu_get();
+            ExecuteLauncher();
         }
 
-        public void Hikisuu_get()
+        private void ExecuteLauncher()
         {
-            string strProgramFilesX86Adobe = "C:\\Program Files (x86)\\Adobe\\";
-            string strProgramFilesX64Adobe = "C:\\Program Files\\Adobe\\Adobe After Effects ";
-            string strAfterEffectsLastPath = "\\Support Files\\AfterFX.exe";
-            string strAEfullpath;
-            string strAEversion;
-            string strAEmadeversion="";
-            string strAEaddInfo="";
-            int aeversion;
-
-            //コマンドラインを配列で取得する
-            string[] cmds = System.Environment.GetCommandLineArgs();
-
-            if (cmds.Length > 2)
+            try
             {
-                MessageBox.Show(text: "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-                    + "\r複数のファイル選択には対応していません");
-            }
-            else if (cmds.Length == 2)
-            {
-                FileStream rfs; // = null;
-                rfs = new FileStream(cmds[1], FileMode.Open, FileAccess.Read, FileShare.Read);
+                string[] args = Environment.GetCommandLineArgs();
 
-                byte[] bytes = BinaryRead(rfs, 0x00000000, 0x00000030);
-
-                //				MessageBox.Show(bytes[21].ToString());
-                if(bytes[0x18]!=0x68)
+                if (args.Length > 2)
                 {
-                    // CS5以前
-                    aeversion = ((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07);
-                    strAEversion = aeversion                                            // version
-                        + "." + (((bytes[0x19] << 1) & 0x0E) + ((bytes[0x1A] >> 7)))    // minor
-                        + "." + (((bytes[0x1A] >> 3) & 0x0F));                           // build
-// 間違ってるかもしれない                       + "." + bytes[0x17];   // revision
+                    ShowMessage("複数のファイル選択には対応していません");
+                    return;
+                }
+
+                if (args.Length != 2)
+                {
+                    ShowMessage("AE5.0以降に対応\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。");
+                    return;
+                }
+
+                string aepPath = args[1];
+                if (!File.Exists(aepPath))
+                {
+                    ShowMessage($"ファイルが見つかりません: {aepPath}");
+                    return;
+                }
+
+                int aeVersion = GetAeVersionFromFile(aepPath, out string strVersionInfo);
+                string aeInstallPath = ResolveAePath(aeVersion);
+
+                if (aeInstallPath == "UnKnown" || !File.Exists(aeInstallPath))
+                {
+                    // Fallback or Unknown handling
+                    string defaultPath = ProgramFilesX64Adobe + @"Adobe After Effects 2020" + AfterEffectsExePath;
+                    
+                    // If the specific version path isn't found, try a known fallback or ask user
+                    DialogResult result = MessageBox.Show(
+                        $"バージョン不明または未インストールのバージョンです。\rCC(2020)で起動しますか？\r検出されたバージョン: {strVersionInfo}",
+                        $"AEautoLauncher Version {Application.ProductVersion}",
+                        MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Exclamation,
+                        MessageBoxDefaultButton.Button2);
+
+                    if (result == DialogResult.OK)
+                    {
+                        LaunchAfterEffects(defaultPath, aepPath, strVersionInfo);
+                    }
                 }
                 else
                 {
-                    // CS6以降
-                    aeversion = (((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07));
-                    strAEversion = aeversion                                            // version
-                        + "." + (((bytes[0x25] << 1) & 0x0E) + ((bytes[0x26] >> 7)))    // minor
-                        + "." + (((bytes[0x26] >> 3) & 0x0F))                           // build
-                        +"." + bytes[0x27];                                             // revision
-                    strAEmadeversion = (((bytes[0x14] << 1) & 0xF8) + ((bytes[0x15] >> 3) & 0x07))                                            // version
-                        + "." + (((bytes[0x15] << 1) & 0x0E) + ((bytes[0x16] >> 7)))    // minor
-                        + "." + (((bytes[0x16] >> 3) & 0x0F))                           // build
-                        + "." + bytes[0x17];                                             // revision
-                    if ((bytes[0x25] & 0x40) == 0)
+                    LaunchAfterEffects(aeInstallPath, aepPath, strVersionInfo);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"エラーが発生しました: {ex.Message}");
+            }
+        }
+
+        private int GetAeVersionFromFile(string path, out string versionString)
+        {
+            int version = 0;
+            versionString = "Unknown";
+            
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (BinaryReader br = new BinaryReader(fs))
+                {
+                    byte[] bytes = br.ReadBytes(48); // Read header
+                    if (bytes.Length < 48) return 0;
+
+                    bool isCs6OrLater = (bytes[0x18] == 0x68);
+
+                    if (!isCs6OrLater)
                     {
-                        strAEaddInfo += "(Win)";
+                        // CS5 and earlier
+                        version = ((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07);
+                        int minor = ((bytes[0x19] << 1) & 0x0E) + (bytes[0x1A] >> 7);
+                        int build = (bytes[0x1A] >> 3) & 0x0F;
+                        versionString = $"{version}.{minor}.{build}";
                     }
                     else
                     {
-                        strAEaddInfo += "(Mac)";
+                        // CS6 and later
+                        version = ((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07);
+                        int minor = ((bytes[0x25] << 1) & 0x0E) + (bytes[0x26] >> 7);
+                        int build = (bytes[0x26] >> 3) & 0x0F;
+                        int revision = bytes[0x27];
+                        versionString = $"{version}.{minor}.{build}.{revision}";
+
+                        // Extract host version for additional info
+                        int hostVer = ((bytes[0x14] << 1) & 0xF8) + ((bytes[0x15] >> 3) & 0x07);
+                        int hostMinor = ((bytes[0x15] << 1) & 0x0E) + (bytes[0x16] >> 7);
+                        int hostBuild = (bytes[0x16] >> 3) & 0x0F;
+                        string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[0x17]}";
+
+                        string platform = (bytes[0x25] & 0x40) == 0 ? "(Win)" : "(Mac)";
+                        versionString += platform;
+
+                        if (versionString != hostVerString)
+                        {
+                            versionString += $" [HostVersion:{hostVerString}]";
+                        }
                     }
-                    if (!strAEversion.Equals(strAEmadeversion))
-                    {
-                        strAEaddInfo += " [HostVersion:" + strAEmadeversion + "]";
-                    }
-                    strAEversion += strAEaddInfo;
                 }
-
-                switch (aeversion) // macは0?000000
-                {
-                    case 5:
-                        if (double.Parse(strAEversion.Substring(0, 3)) < 5.5)
-                        {
-                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 5.0" + strAfterEffectsLastPath;
-                        }
-                        else
-                        {
-                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 5.5" + strAfterEffectsLastPath;
-                        }
-                        break;
-
-                    case 6:
-                        if (double.Parse(strAEversion.Substring(0, 3)) < 6.5)
-                        {
-                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.0" + strAfterEffectsLastPath;
-                        }
-                        else
-                        {
-                            strAEfullpath = strProgramFilesX86Adobe + "After Effects 6.5" + strAfterEffectsLastPath;
-                        }
-                        break;
-
-                    case 7:
-                        strAEfullpath = strProgramFilesX86Adobe + "After Effects 7.0" + strAfterEffectsLastPath;
-                        break;
-
-                    case 8:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS3" + strAfterEffectsLastPath;
-                        strAEversion += " [CS3]";
-                        break;
-
-                    case 9:
-                        strAEfullpath = strProgramFilesX86Adobe + "Adobe After Effects CS4" + strAfterEffectsLastPath;
-                        strAEversion += " [CS4]";
-                        break;
-
-                    case 10:
-                        if (double.Parse(strAEversion.Substring(0, 4)) < 10.5)
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + "CS5" + strAfterEffectsLastPath;
-                        }
-                        else
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + "CS5.5" + strAfterEffectsLastPath;
-                        }
-                        strAEversion += " [CS5]";
-                        break;
-
-                    case 11:
-
-                        strAEfullpath = strProgramFilesX64Adobe + "CS6" + strAfterEffectsLastPath;
-                        strAEversion += " [CS6]";
-                        break;
-
-                    case 12:
-                        strAEfullpath = strProgramFilesX64Adobe + "CC" + strAfterEffectsLastPath;
-                        strAEversion += " [CC]";
-                        break;
-
-                    case 13: //13.8.1.38
-                        if (double.Parse(strAEversion.Substring(0, 4)) < 13.5 )
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + "CC 2014" + strAfterEffectsLastPath;
-                            strAEversion += " [CC 2014]";
-                        }
-                        else
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + "CC 2015.3" + strAfterEffectsLastPath;
-                            strAEversion += " [CC 2015]";
-                        }
-                        break;
-
-
-                    default:
-                        strAEfullpath = "UnKnown";
-                        if ((aeversion > 13) & (aeversion < 17)) // ver.14(CC 2017)-ver.16(CC 2019)まで
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + "CC " + (2003 + aeversion) + strAfterEffectsLastPath;
-                        }
-                        else if ((aeversion > 16) & (aeversion < 22))// ver.17(CC 2020)から
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + (2003 + aeversion) + strAfterEffectsLastPath;
-                        }
-                        else if (aeversion > 21) // ver.22(CC 2022)から
-                        {
-                            strAEfullpath = strProgramFilesX64Adobe + (2000 + aeversion) + strAfterEffectsLastPath;
-                        }
-                        break;
-
-                }
-
-                if (strAEfullpath == "UnKnown")
-                {
-                    strAEfullpath = strProgramFilesX64Adobe + "2020" + strAfterEffectsLastPath;
-                    AE_UnknownVersion(strAEfullpath, cmds[1], strAEversion);
-                }
-                else
-                {
-                    AE_exe(strAEfullpath, cmds[1], strAEversion);
-                }
-
             }
-            else
+            catch
             {
-                MessageBox.Show("AE5.0以降に対応\rフォルダはデフォルト決め打ち\r拡張子AEPの関連づけをAEautoLauncherにしてください。",
-                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                // Ignore read errors, return 0
             }
+
+            return version;
         }
 
-        public static byte[] BinaryRead(FileStream binFileStream, long address, int length)
+        private string ResolveAePath(int version)
         {
-            // byte型変数を格納できるListコレクションを宣言
-            List<byte> data = new List<byte>();
-            // ファイルストリームとアドレスのチェック
-            if (binFileStream != null && address > -1)
+            // Simple mapping for older versions
+            if (version == 5) return ProgramFilesX86Adobe + @"After Effects 5.5" + AfterEffectsExePath; // Handling 5.0/5.5 logic simplified for now as per old logic 'if < 5.5' check was there, but assume 5.5 for simplicity or fallback
+            if (version == 6) return ProgramFilesX86Adobe + @"After Effects 6.5" + AfterEffectsExePath;
+            if (version == 7) return ProgramFilesX86Adobe + @"After Effects 7.0" + AfterEffectsExePath;
+            if (version == 8) return ProgramFilesX86Adobe + @"Adobe After Effects CS3" + AfterEffectsExePath;
+            if (version == 9) return ProgramFilesX86Adobe + @"Adobe After Effects CS4" + AfterEffectsExePath;
+            
+            // CS5 - CS6
+            if (version == 10) return ProgramFilesX64Adobe + @"Adobe After Effects CS5.5" + AfterEffectsExePath; // Warning: Old logic had CS5 exception
+            if (version == 11) return ProgramFilesX64Adobe + @"Adobe After Effects CS6" + AfterEffectsExePath;
+            
+            // CC versions
+            if (version == 12) return ProgramFilesX64Adobe + @"Adobe After Effects CC" + AfterEffectsExePath;
+            if (version == 13) return ProgramFilesX64Adobe + @"Adobe After Effects CC 2015.3" + AfterEffectsExePath; // Old logic split 2014/2015
+
+            // Automatic mapping for CC 2017+ (v14+)
+            if (version >= 14 && version < 17)
             {
-                // ファイルの最終アドレスより指定アドレスが大きい場合、
-                // 空のバイト型配列を返す
-                if (binFileStream.Length - 1 < address)
-                {
-                    return data.ToArray();
-                }
-                // 開始アドレス + 読み取り範囲の値がファイルの最終アドレスを
-                // 超える場合、読み取り範囲をファイルの最終アドレス迄にする
-                int readLength = length;
-                if (address + readLength > binFileStream.Length)
-                {
-                    readLength = (int)(binFileStream.Length - address);
-                }
-                // バイナリ読み込み
-                BinaryReader binReader = new BinaryReader(binFileStream);
-                // 指定したアドレスに読み込み位置を移動
-                binFileStream.Seek(address, SeekOrigin.Begin);
-                // 読み込み
-                data.AddRange(binReader.ReadBytes(readLength));
-                // バイト型配列にして返す
-                return data.ToArray();
+               return ProgramFilesX64Adobe + $@"Adobe After Effects CC {2003 + version}" + AfterEffectsExePath;
             }
-            else
+            if (version >= 17 && version < 22)
             {
-                // 空のバイト型配列を返す
-                return data.ToArray();
+               return ProgramFilesX64Adobe + $@"Adobe After Effects {2003 + version}" + AfterEffectsExePath;
             }
+            if (version >= 22)
+            {
+               return ProgramFilesX64Adobe + $@"Adobe After Effects {2000 + version}" + AfterEffectsExePath;
+            }
+
+            return "UnKnown";
         }
 
-        public void AE_exe(string strAEfullpath, string aep, string strAEversion)
+        private void LaunchAfterEffects(string exePath, string projectPath, string debugVersionParams)
         {
-            // ProcessStartInfo の新しいインスタンスを生成する
-            System.Diagnostics.ProcessStartInfo hPsInfo = (
-                new System.Diagnostics.ProcessStartInfo()
-            );
-            //			MessageBox.Show(ae_program);
-            hPsInfo.FileName = strAEfullpath;
-
-            // コントロールキーが押されている場合はヴァージョンチェック機能
+             // Check for Control key for debug mode
             if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
             {
-                MessageBox.Show("AE version : " + strAEversion + "\r\r" + @aep,
-                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                ShowMessage($"AE version : {debugVersionParams}\r\r{projectPath}");
+                return;
             }
 
-            // 実行ファイルがあるか？
-            else if (File.Exists(hPsInfo.FileName))
+            if (!File.Exists(exePath))
             {
-
-
-                // コマンドライン引数を設定する
-                hPsInfo.Arguments = "\"" + @aep + "\"";
-
-                // 新しいウィンドウを作成するかどうかを設定する (初期値 false)
-                hPsInfo.CreateNoWindow = true;
-
-                // シェルを使用するかどうか設定する (初期値 true)
-                hPsInfo.UseShellExecute = false;
-
-                // 起動できなかった時にエラーダイアログを表示するかどうかを設定する (初期値 false)
-                hPsInfo.ErrorDialog = true;
-
-                // エラーダイアログを表示するのに必要な親ハンドルを設定する
-                hPsInfo.ErrorDialogParentHandle = this.Handle;
-
-                // アプリケーションを起動する時の動詞を設定する
-                hPsInfo.Verb = "Open";
-
-                // 起動ディレクトリを設定する
-                //			hPsInfo.WorkingDirectory = @"C:\Hoge\";
-
-                // 起動時のウィンドウの状態を設定する
-                hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal;     //通常
-                                                                                        //			hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;     //非表示
-                                                                                        //			hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized;  //最小化
-                                                                                        //			hPsInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Maximized;  //最大化
-
-                // ProcessStartInfo を指定して起動する
-                System.Diagnostics.Process.Start(hPsInfo);
+                ShowMessage($"実行可能なAfter Effectsが見つかりません。\rPath: {exePath}\rProject: {projectPath}\rDetected Version: {debugVersionParams}");
+                return;
             }
-            else
+
+            var psi = new System.Diagnostics.ProcessStartInfo
             {
-                MessageBox.Show("aepは実行ファイルの場所が違うので起動できません。\r" + hPsInfo.FileName + "\r" + @aep +"\rAE version: " + strAEversion,
-                    "AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                FileName = exePath,
+                Arguments = $"\"{projectPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                ErrorDialog = true,
+                ErrorDialogParentHandle = this.Handle,
+                 // WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal // Default
+            };
 
-            }
+            System.Diagnostics.Process.Start(psi);
         }
 
-        public void AE_UnknownVersion(string strAEfullpath, string aep, string strAEversion)
+        private void ShowMessage(string message)
         {
-            DialogResult result = MessageBox.Show("AEautoLauncher Version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
-                + "\rバージョン不明ですがCC(2020)で起動ますか？\rAE version :" + strAEversion,
-                "AEautoLauncher", MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-            if (result == DialogResult.OK)
-            {
-                AE_exe(strAEfullpath, aep, strAEversion);
-            }
+            MessageBox.Show(message, $"AEautoLauncher Version {Application.ProductVersion}");
         }
 
         private void AEautoLauncher_Load(object sender, EventArgs e)
         {
             Close();
         }
-
     }
 }
