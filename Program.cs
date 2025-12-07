@@ -97,11 +97,13 @@ namespace AEautoLauncher
 
                     // Magic Number Check: RIFF ... Egg!
                     // RIFF = 0x52, 0x49, 0x46, 0x46 (0-3)
+                    // RIFX = 0x52, 0x49, 0x46, 0x58 (0-3) - Big Endian variant
                     // Egg! = 0x45, 0x67, 0x67, 0x21 (8-11)
                     bool isRiff = (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46);
+                    bool isRifx = (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x58);
                     bool isEgg  = (bytes[8] == 0x45 && bytes[9] == 0x67 && bytes[10] == 0x67 && bytes[11] == 0x21);
 
-                    if (!isRiff || !isEgg)
+                    if ((!isRiff && !isRifx) || !isEgg)
                     {
                         return 0; // Not a valid AEP file
                     }
