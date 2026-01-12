@@ -1,6 +1,6 @@
 ﻿// Program.cs
-// Version: 0.4.3.1
-// Updated: Sun Jan 12 12:36:00 JST 2026
+// Version: 0.4.4.0
+// Updated: Sun Jan 12 12:40:00 JST 2026
 
 using System;
 using System.Collections.Generic;
@@ -59,12 +59,18 @@ namespace AEautoLauncher
 
                 if (aeInstallPath == "UnKnown" || !File.Exists(aeInstallPath))
                 {
-                    // Fallback or Unknown handling
-                    string defaultPath = ProgramFilesX64Adobe + @"Adobe After Effects 2020" + AfterEffectsExePath;
+                    // インストール済みの最新バージョンを検出してフォールバック
+                    string latestPath = FindLatestInstalledAE();
                     
-                    // If the specific version path isn't found, try a known fallback or ask user
+                    if (latestPath == null)
+                    {
+                        ShowMessage($"After Effectsがインストールされていません。\r検出されたバージョン: {strVersionInfo}");
+                        return;
+                    }
+
+                    string latestVersionName = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(latestPath)));
                     DialogResult result = MessageBox.Show(
-                        $"バージョン不明または未インストールのバージョンです。\rCC(2020)で起動しますか？\r検出されたバージョン: {strVersionInfo}",
+                        $"バージョン不明または未インストールのバージョンです。\r{latestVersionName}で起動しますか？\r検出されたバージョン: {strVersionInfo}",
                         $"AEautoLauncher Version {Application.ProductVersion}",
                         MessageBoxButtons.OKCancel,
                         MessageBoxIcon.Exclamation,
@@ -72,7 +78,7 @@ namespace AEautoLauncher
 
                     if (result == DialogResult.OK)
                     {
-                        LaunchAfterEffects(defaultPath, aepPath, strVersionInfo);
+                        LaunchAfterEffects(latestPath, aepPath, strVersionInfo);
                     }
                 }
                 else
@@ -190,6 +196,68 @@ namespace AEautoLauncher
             }
 
             return "UnKnown";
+        }
+
+        /// <summary>
+        /// インストール済みの最新After Effectsを検出して実行ファイルパスを返す
+        /// </summary>
+        private static string FindLatestInstalledAE()
+        {
+            string latestPath = null;
+            int latestYear = 0;
+
+            string[] searchPaths = { ProgramFilesX64Adobe, ProgramFilesX86Adobe };
+
+            foreach (string basePath in searchPaths)
+            {
+                if (!Directory.Exists(basePath)) continue;
+
+                foreach (string dir in Directory.GetDirectories(basePath, "*After Effects*"))
+                {
+                    string exePath = dir + AfterEffectsExePath;
+                    if (!File.Exists(exePath)) continue;
+
+                    string folderName = Path.GetFileName(dir);
+                    int year = ExtractYearFromFolderName(folderName);
+
+                    if (year > latestYear)
+                    {
+                        latestYear = year;
+                        latestPath = exePath;
+                    }
+                }
+            }
+
+            return latestPath;
+        }
+
+        /// <summary>
+        /// フォルダ名から年度を抽出（例: "Adobe After Effects 2024" → 2024）
+        /// </summary>
+        private static int ExtractYearFromFolderName(string folderName)
+        {
+            // "CC 2017", "CC 2018", "2020", "2024" などのパターンを検出
+            System.Text.RegularExpressions.Match match = 
+                System.Text.RegularExpressions.Regex.Match(folderName, @"20\d{2}");
+            
+            if (match.Success && int.TryParse(match.Value, out int year))
+            {
+                return year;
+            }
+
+            // CC (年号なし) = 2013相当
+            if (folderName.Contains("CC") && !folderName.Contains("20"))
+            {
+                return 2013;
+            }
+
+            // CS6 = 2012, CS5 = 2010, etc.
+            if (folderName.Contains("CS6")) return 2012;
+            if (folderName.Contains("CS5")) return 2010;
+            if (folderName.Contains("CS4")) return 2009;
+            if (folderName.Contains("CS3")) return 2007;
+
+            return 0;
         }
 
         private static void LaunchAfterEffects(string exePath, string projectPath, string debugVersionParams)

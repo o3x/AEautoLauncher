@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.4.0] - Sun Jan 12 12:40:00 JST 2026
+### Added
+- フォールバック時にインストール済みの最新After Effectsを自動検出する機能を追加。
+- `FindLatestInstalledAE`メソッド: Program Filesフォルダ内のAEインストールを検索。
+- `ExtractYearFromFolderName`メソッド: フォルダ名から年度を抽出。
+
+### Changed
+- ハードコードされたCC(2020)フォールバックを廃止。
+
 ## [0.4.3.1] - Sun Jan 12 12:36:00 JST 2026
 ### Fixed
 - Program.csに更新日付コメントを追加。
