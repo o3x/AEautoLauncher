@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Program.cs
+// Version: 0.4.3.1
+// Updated: Sun Jan 12 12:36:00 JST 2026
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -133,10 +137,13 @@ namespace AEautoLauncher
                         int hostBuild = (bytes[0x16] >> 3) & 0x0F;
                         string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[0x17]}";
 
+                        // Compare base versions BEFORE adding platform suffix
+                        bool versionsMatch = (versionString == hostVerString);
+
                         string platform = (bytes[0x25] & 0x40) == 0 ? "(Win)" : "(Mac)";
                         versionString += platform;
 
-                        if (versionString != hostVerString)
+                        if (!versionsMatch)
                         {
                             versionString += $" [HostVersion:{hostVerString}]";
                         }

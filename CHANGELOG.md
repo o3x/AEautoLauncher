@@ -1,3 +1,15 @@
+# Changelog
+
+## [0.4.3.1] - Sun Jan 12 12:36:00 JST 2026
+### Fixed
+- Program.csに更新日付コメントを追加。
+- AssemblyInfo.csのCopyright年を2026年に更新。
+- CHANGELOG.mdにタイトル見出しを追加。
+
+## [0.4.3.0] - Sun Jan 12 12:35:00 JST 2026
+### Fixed
+- HostVersionが常に表示されるバグを修正。プラットフォーム文字列追加前にバージョン比較を行うように変更。
+
 ## [0.4.2.0] - Sun Dec 07 13:10:00 JST 2025
 ### Changes
 - RIFXヘッダー（Big Endian形式）のマジックナンバーチェックを追加し、一部のAEPファイルが開けない問題を修正。
