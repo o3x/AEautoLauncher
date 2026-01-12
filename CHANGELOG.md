@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.5.0] - Sun Jan 12 12:44:00 JST 2026
+### Changed
+- 未使用のusingステートメント（`System.Collections.Generic`, `System.Linq`, `System.Threading.Tasks`）を削除。
+- コード内のコメントを全て日本語に統一。
+- バージョンマッピングを改善: CS5/CS5.5、CC2014/CC2015の自動検出に対応。
+- 例外処理を改善: ファイル読み込みエラー時にデバッグログを出力。
+
+### Added
+- `TryResolvePath`ヘルパーメソッド: 複数のフォルダ名候補から存在するパスを検索。
+
 ## [0.4.4.0] - Sun Jan 12 12:40:00 JST 2026
 ### Added
 - フォールバック時にインストール済みの最新After Effectsを自動検出する機能を追加。

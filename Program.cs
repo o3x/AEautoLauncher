@@ -1,14 +1,12 @@
 ﻿// Program.cs
-// Version: 0.4.4.0
-// Updated: Sun Jan 12 12:40:00 JST 2026
+// Version: 0.4.5.0
+// Updated: Sun Jan 12 12:44:00 JST 2026
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace AEautoLauncher
 {
@@ -102,27 +100,27 @@ namespace AEautoLauncher
                 using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (BinaryReader br = new BinaryReader(fs))
                 {
-                    byte[] bytes = br.ReadBytes(48); // Read header
+                    byte[] bytes = br.ReadBytes(48); // ヘッダー読み込み
                     if (bytes.Length < 48) return 0;
 
-                    // Magic Number Check: RIFF ... Egg!
-                    // RIFF = 0x52, 0x49, 0x46, 0x46 (0-3)
-                    // RIFX = 0x52, 0x49, 0x46, 0x58 (0-3) - Big Endian variant
-                    // Egg! = 0x45, 0x67, 0x67, 0x21 (8-11)
+                    // マジックナンバーチェック: RIFF/RIFX ... Egg!
+                    // RIFF = 0x52, 0x49, 0x46, 0x46 (Little Endian)
+                    // RIFX = 0x52, 0x49, 0x46, 0x58 (Big Endian)
+                    // Egg! = 0x45, 0x67, 0x67, 0x21 (AEP識別子)
                     bool isRiff = (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46);
                     bool isRifx = (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x58);
                     bool isEgg  = (bytes[8] == 0x45 && bytes[9] == 0x67 && bytes[10] == 0x67 && bytes[11] == 0x21);
 
                     if ((!isRiff && !isRifx) || !isEgg)
                     {
-                        return 0; // Not a valid AEP file
+                        return 0; // 有効なAEPファイルではない
                     }
 
                     bool isCs6OrLater = (bytes[0x18] == 0x68);
 
                     if (!isCs6OrLater)
                     {
-                        // CS5 and earlier
+                        // CS5以前のバージョン判定
                         version = ((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07);
                         int minor = ((bytes[0x19] << 1) & 0x0E) + (bytes[0x1A] >> 7);
                         int build = (bytes[0x1A] >> 3) & 0x0F;
@@ -130,20 +128,20 @@ namespace AEautoLauncher
                     }
                     else
                     {
-                        // CS6 and later
+                        // CS6以降のバージョン判定
                         version = ((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07);
                         int minor = ((bytes[0x25] << 1) & 0x0E) + (bytes[0x26] >> 7);
                         int build = (bytes[0x26] >> 3) & 0x0F;
                         int revision = bytes[0x27];
                         versionString = $"{version}.{minor}.{build}.{revision}";
 
-                        // Extract host version for additional info
+                        // ホストバージョン情報を抽出（追加情報用）
                         int hostVer = ((bytes[0x14] << 1) & 0xF8) + ((bytes[0x15] >> 3) & 0x07);
                         int hostMinor = ((bytes[0x15] << 1) & 0x0E) + (bytes[0x16] >> 7);
                         int hostBuild = (bytes[0x16] >> 3) & 0x0F;
                         string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[0x17]}";
 
-                        // Compare base versions BEFORE adding platform suffix
+                        // プラットフォーム情報追加前にバージョン比較
                         bool versionsMatch = (versionString == hostVerString);
 
                         string platform = (bytes[0x25] & 0x40) == 0 ? "(Win)" : "(Mac)";
@@ -156,32 +154,36 @@ namespace AEautoLauncher
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore read errors, return 0
+                // ファイル読み込みエラー時はバージョン0を返す
+                System.Diagnostics.Debug.WriteLine($"AEPファイル読み込みエラー: {ex.Message}");
             }
 
             return version;
         }
 
+        /// <summary>
+        /// AEバージョン番号からインストールパスを解決する
+        /// </summary>
         private static string ResolveAePath(int version)
         {
-            // Simple mapping for older versions
-            if (version == 5) return ProgramFilesX86Adobe + @"After Effects 5.5" + AfterEffectsExePath; // Handling 5.0/5.5 logic simplified for now as per old logic 'if < 5.5' check was there, but assume 5.5 for simplicity or fallback
-            if (version == 6) return ProgramFilesX86Adobe + @"After Effects 6.5" + AfterEffectsExePath;
+            // 古いバージョン（32bit）のマッピング
+            if (version == 5) return TryResolvePath(ProgramFilesX86Adobe, "After Effects 5.0", "After Effects 5.5");
+            if (version == 6) return TryResolvePath(ProgramFilesX86Adobe, "After Effects 6.0", "After Effects 6.5");
             if (version == 7) return ProgramFilesX86Adobe + @"After Effects 7.0" + AfterEffectsExePath;
             if (version == 8) return ProgramFilesX86Adobe + @"Adobe After Effects CS3" + AfterEffectsExePath;
             if (version == 9) return ProgramFilesX86Adobe + @"Adobe After Effects CS4" + AfterEffectsExePath;
             
-            // CS5 - CS6
-            if (version == 10) return ProgramFilesX64Adobe + @"Adobe After Effects CS5.5" + AfterEffectsExePath; // Warning: Old logic had CS5 exception
+            // CS5 - CS6（64bit）
+            if (version == 10) return TryResolvePath(ProgramFilesX64Adobe, "Adobe After Effects CS5", "Adobe After Effects CS5.5");
             if (version == 11) return ProgramFilesX64Adobe + @"Adobe After Effects CS6" + AfterEffectsExePath;
             
-            // CC versions
+            // CCバージョン
             if (version == 12) return ProgramFilesX64Adobe + @"Adobe After Effects CC" + AfterEffectsExePath;
-            if (version == 13) return ProgramFilesX64Adobe + @"Adobe After Effects CC 2015.3" + AfterEffectsExePath; // Old logic split 2014/2015
+            if (version == 13) return TryResolvePath(ProgramFilesX64Adobe, "Adobe After Effects CC 2014", "Adobe After Effects CC 2015", "Adobe After Effects CC 2015.3");
 
-            // Automatic mapping for CC 2017+ (v14+)
+            // CC 2017以降の自動マッピング (v14+)
             if (version >= 14 && version < 17)
             {
                return ProgramFilesX64Adobe + $@"Adobe After Effects CC {2003 + version}" + AfterEffectsExePath;
@@ -196,6 +198,23 @@ namespace AEautoLauncher
             }
 
             return "UnKnown";
+        }
+
+        /// <summary>
+        /// 複数のフォルダ名候補から存在するパスを返す（優先度順）
+        /// </summary>
+        private static string TryResolvePath(string basePath, params string[] folderNames)
+        {
+            foreach (string folder in folderNames)
+            {
+                string path = basePath + folder + AfterEffectsExePath;
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+            // どれも見つからない場合は最初の候補を返す（後のチェックでフォールバック処理へ）
+            return basePath + folderNames[0] + AfterEffectsExePath;
         }
 
         /// <summary>
@@ -237,8 +256,7 @@ namespace AEautoLauncher
         private static int ExtractYearFromFolderName(string folderName)
         {
             // "CC 2017", "CC 2018", "2020", "2024" などのパターンを検出
-            System.Text.RegularExpressions.Match match = 
-                System.Text.RegularExpressions.Regex.Match(folderName, @"20\d{2}");
+            Match match = Regex.Match(folderName, @"20\d{2}");
             
             if (match.Success && int.TryParse(match.Value, out int year))
             {
@@ -260,9 +278,12 @@ namespace AEautoLauncher
             return 0;
         }
 
+        /// <summary>
+        /// After Effectsを起動する
+        /// </summary>
         private static void LaunchAfterEffects(string exePath, string projectPath, string debugVersionParams)
         {
-             // Check for Control key for debug mode
+             // Ctrlキー押下時はデバッグモード（AEを起動せずバージョン情報を表示）
             if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
             {
                 ShowMessage($"AE version : {debugVersionParams}\r\r{projectPath}");
