@@ -51,6 +51,7 @@ Main()
 ## バージョン管理・リリースフロー
 
 1. `Program.cs` 冒頭の `Version` と `Updated` を更新
-2. `Properties\AssemblyInfo.cs` の `AssemblyVersion` / `AssemblyFileVersion` を更新
+2. `Properties\AssemblyInfo.cs` の `AssemblyVersion` / `AssemblyFileVersion` を更新  
+   （`AssemblyFileVersion` が `Application.ProductVersion` の値となり、全ダイアログのタイトルバーに表示される）
 3. CHANGELOG.md を更新（日時形式: `Sun Jan 12 12:44:00 JST 2026`）
 4. Release ビルド → `gh release create vX.Y.Z` で GitHub Release を作成し EXE を添付
