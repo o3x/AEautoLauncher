@@ -16,6 +16,15 @@ namespace AEautoLauncher
         private const string ProgramFilesX64Adobe = @"C:\Program Files\Adobe\";
         private const string AfterEffectsExePath = @"\Support Files\AfterFX.exe";
 
+        // AEPバイナリヘッダーの解析仕様（リバースエンジニアリング結果。値の変更禁止）
+        private const int HeaderLength = 48;            // 解析に必要なヘッダー長
+        private const int OffsetCs6Flag = 0x18;         // この位置が 0x68 なら CS6 以降
+        private const byte Cs6FlagValue = 0x68;
+        private const int OffsetLegacyVersion = 0x18;   // CS5以前: バージョン格納位置
+        private const int OffsetFileVersion = 0x24;     // CS6以降: ファイルバージョン格納位置
+        private const int OffsetHostVersion = 0x14;     // CS6以降: ホストバージョン格納位置
+        private const byte MacPlatformMask = 0x40;      // bytes[0x25] とのANDでMac判別
+
         /// <summary>
         /// アプリケーションのメイン エントリ ポイントです。
         /// </summary>
@@ -111,8 +120,8 @@ namespace AEautoLauncher
                 using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (BinaryReader br = new BinaryReader(fs))
                 {
-                    byte[] bytes = br.ReadBytes(48); // ヘッダー読み込み
-                    if (bytes.Length < 48) return 0;
+                    byte[] bytes = br.ReadBytes(HeaderLength); // ヘッダー読み込み
+                    if (bytes.Length < HeaderLength) return 0;
 
                     // マジックナンバーチェック: RIFF/RIFX ... Egg!
                     // RIFF = 0x52, 0x49, 0x46, 0x46 (Little Endian)
@@ -127,29 +136,29 @@ namespace AEautoLauncher
                         return 0; // 有効なAEPファイルではない
                     }
 
-                    bool isCs6OrLater = (bytes[0x18] == 0x68);
+                    bool isCs6OrLater = (bytes[OffsetCs6Flag] == Cs6FlagValue);
 
                     if (!isCs6OrLater)
                     {
                         // CS5以前のバージョン判定
-                        ExtractVersionBits(bytes, 0x18, out version, out int minor, out int build);
+                        ExtractVersionBits(bytes, OffsetLegacyVersion, out version, out int minor, out int build);
                         versionString = $"{version}.{minor}.{build}";
                     }
                     else
                     {
                         // CS6以降のバージョン判定
-                        ExtractVersionBits(bytes, 0x24, out version, out int minor, out int build);
-                        int revision = bytes[0x27];
+                        ExtractVersionBits(bytes, OffsetFileVersion, out version, out int minor, out int build);
+                        int revision = bytes[OffsetFileVersion + 3];
                         versionString = $"{version}.{minor}.{build}.{revision}";
 
                         // ホストバージョン情報を抽出（追加情報用）
-                        ExtractVersionBits(bytes, 0x14, out int hostVer, out int hostMinor, out int hostBuild);
-                        string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[0x17]}";
+                        ExtractVersionBits(bytes, OffsetHostVersion, out int hostVer, out int hostMinor, out int hostBuild);
+                        string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[OffsetHostVersion + 3]}";
 
                         // プラットフォーム情報追加前にバージョン比較
                         bool versionsMatch = (versionString == hostVerString);
 
-                        string platform = (bytes[0x25] & 0x40) == 0 ? "(Win)" : "(Mac)";
+                        string platform = (bytes[OffsetFileVersion + 1] & MacPlatformMask) == 0 ? "(Win)" : "(Mac)";
                         versionString += platform;
 
                         if (!versionsMatch)
