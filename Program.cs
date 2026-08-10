@@ -1,6 +1,6 @@
 ﻿// Program.cs
-// Version: 0.4.5.0
-// Updated: Sun Jan 12 12:44:00 JST 2026
+// Version: 0.4.6.0
+// Updated: Mon Aug 10 19:35:48 JST 2026
 
 using System;
 using System.Windows.Forms;

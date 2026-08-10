@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.6.0] - Mon Aug 10 19:35:48 JST 2026
+
+**動作変更なし（内部リファクタリングのみ）**。
+
+### Changed
+- `.gitignore`記載済みのIDE一時ファイル・ビルド成果物（`.vs/`・`bin/`・`AEautoLauncher.csproj.user`）を追跡解除
+- `ResolveAePath`の「解決不能」を表すセンチネル文字列`"UnKnown"`を`null`に置き換え
+- 3箇所に重複していたAEPヘッダーのバージョンビット抽出処理を`ExtractVersionBits`ヘルパーに集約
+- AEPヘッダー解析のオフセット直値（48, 0x18, 0x24, 0x14, 0x27, 0x17, 0x25, 0x40, 0x68）を名前付き定数に整理
+
 ## [0.4.5.0] - Sun Jan 12 12:44:00 JST 2026
 ### Changed
 - 未使用のusingステートメント（`System.Collections.Generic`, `System.Linq`, `System.Threading.Tasks`）を削除。
