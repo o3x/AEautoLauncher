@@ -55,7 +55,7 @@ namespace AEautoLauncher
                 int aeVersion = GetAeVersionFromFile(aepPath, out string strVersionInfo);
                 string aeInstallPath = ResolveAePath(aeVersion);
 
-                if (aeInstallPath == "UnKnown" || !File.Exists(aeInstallPath))
+                if (aeInstallPath == null || !File.Exists(aeInstallPath))
                 {
                     // インストール済みの最新バージョンを検出してフォールバック
                     string latestPath = FindLatestInstalledAE();
@@ -166,6 +166,7 @@ namespace AEautoLauncher
         /// <summary>
         /// AEバージョン番号からインストールパスを解決する
         /// </summary>
+        /// <returns>解決できたパス。見つからない場合は null</returns>
         private static string ResolveAePath(int version)
         {
             // 古いバージョン（32bit）のマッピング
@@ -197,7 +198,7 @@ namespace AEautoLauncher
                return ProgramFilesX64Adobe + $@"Adobe After Effects {2000 + version}" + AfterEffectsExePath;
             }
 
-            return "UnKnown";
+            return null;
         }
 
         /// <summary>
