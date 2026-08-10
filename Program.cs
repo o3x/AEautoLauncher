@@ -90,6 +90,17 @@ namespace AEautoLauncher
             }
         }
 
+        /// <summary>
+        /// AEPヘッダーの指定オフセットから major/minor/build をビット演算で抽出する
+        /// （AE非公開仕様。演算式は変更禁止）
+        /// </summary>
+        private static void ExtractVersionBits(byte[] bytes, int offset, out int major, out int minor, out int build)
+        {
+            major = ((bytes[offset] << 1) & 0xF8) + ((bytes[offset + 1] >> 3) & 0x07);
+            minor = ((bytes[offset + 1] << 1) & 0x0E) + (bytes[offset + 2] >> 7);
+            build = (bytes[offset + 2] >> 3) & 0x0F;
+        }
+
         private static int GetAeVersionFromFile(string path, out string versionString)
         {
             int version = 0;
@@ -121,24 +132,18 @@ namespace AEautoLauncher
                     if (!isCs6OrLater)
                     {
                         // CS5以前のバージョン判定
-                        version = ((bytes[0x18] << 1) & 0xF8) + ((bytes[0x19] >> 3) & 0x07);
-                        int minor = ((bytes[0x19] << 1) & 0x0E) + (bytes[0x1A] >> 7);
-                        int build = (bytes[0x1A] >> 3) & 0x0F;
+                        ExtractVersionBits(bytes, 0x18, out version, out int minor, out int build);
                         versionString = $"{version}.{minor}.{build}";
                     }
                     else
                     {
                         // CS6以降のバージョン判定
-                        version = ((bytes[0x24] << 1) & 0xF8) + ((bytes[0x25] >> 3) & 0x07);
-                        int minor = ((bytes[0x25] << 1) & 0x0E) + (bytes[0x26] >> 7);
-                        int build = (bytes[0x26] >> 3) & 0x0F;
+                        ExtractVersionBits(bytes, 0x24, out version, out int minor, out int build);
                         int revision = bytes[0x27];
                         versionString = $"{version}.{minor}.{build}.{revision}";
 
                         // ホストバージョン情報を抽出（追加情報用）
-                        int hostVer = ((bytes[0x14] << 1) & 0xF8) + ((bytes[0x15] >> 3) & 0x07);
-                        int hostMinor = ((bytes[0x15] << 1) & 0x0E) + (bytes[0x16] >> 7);
-                        int hostBuild = (bytes[0x16] >> 3) & 0x0F;
+                        ExtractVersionBits(bytes, 0x14, out int hostVer, out int hostMinor, out int hostBuild);
                         string hostVerString = $"{hostVer}.{hostMinor}.{hostBuild}.{bytes[0x17]}";
 
                         // プラットフォーム情報追加前にバージョン比較
